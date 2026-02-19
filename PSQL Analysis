@@ -1,0 +1,82 @@
+-- Категоризация --
+-- Создаем временную таблицу или обновляем основную
+UPDATE chocolate_sales
+SET category = CASE 
+    WHEN product ILIKE '%Dark%' THEN 'Dark Chocolate'
+    WHEN product ILIKE '%White%' THEN 'White Chocolate'
+    WHEN product ILIKE '%Almond%' OR product ILIKE '%Peanut%' OR product ILIKE '%Nut%' THEN 'Nuts & Seeds'
+    WHEN product ILIKE '%Bars%' THEN 'Bars'
+    WHEN product ILIKE '%Eclairs%' OR product ILIKE '%Caramel%' THEN 'Caramel & Toffee'
+    ELSE 'Other'
+END;
+
+-- Проверяем, всё ли распределилось --
+SELECT category, COUNT(product) as items_count, ROUND(SUM(revenue), 2) as total_revenue
+FROM chocolate_sales
+GROUP BY 1
+ORDER BY total_revenue DESC;
+
+-- Анализ «Top Performers» по странам --
+SELECT 
+    country,
+    COUNT(DISTINCT product) as product_range, -- Широта ассортимента в стране
+    SUM(units_sold) as total_units,
+    ROUND(SUM(revenue) / SUM(units_sold), 2) as avg_unit_price, -- Реальная средняя цена продажи
+    SUM(revenue) as total_revenue,
+    RANK() OVER (ORDER BY SUM(revenue) DESC) as market_rank
+FROM chocolate_sales
+GROUP BY country;
+
+-- Поиск аномалий (Data Integrity) --
+SELECT 
+    product, 
+    units_sold, 
+    unit_price, 
+    revenue,
+    ROUND(units_sold * unit_price, 2) as expected_revenue,
+    ABS(revenue - (units_sold * unit_price)) as discrepancy
+FROM chocolate_sales
+WHERE ABS(revenue - (units_sold * unit_price)) > 0.1
+ORDER BY discrepancy DESC;
+
+-- Оконные функции: Нарастающий итог (Running Total) --
+SELECT 
+    order_date,
+    revenue,
+    SUM(revenue) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as running_total_revenue,
+    AVG(revenue) OVER (ORDER BY order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) as moving_avg_7_days -- Скользящее среднее для сглаживания графиков
+FROM chocolate_sales
+ORDER BY order_date;
+
+-- RFM-анализ по странам --
+
+WITH country_metrics AS (
+    SELECT 
+        country,
+        -- Находим разницу между "сегодня" (или макс датой в БД) и датой заказа
+        (SELECT MAX(order_date) FROM chocolate_sales) - MAX(order_date) as recency_days,
+        COUNT(*) as frequency,
+        SUM(revenue) as monetary
+    FROM chocolate_sales
+    GROUP BY country
+),
+scores AS (
+    -- Разбиваем на 3 группы (1 - плохо, 3 - круто) через NTILE
+    SELECT 
+        country,
+        NTILE(3) OVER (ORDER BY recency_days DESC) as r_score, -- Меньше дней — выше балл
+        NTILE(3) OVER (ORDER BY frequency ASC) as f_score,
+        NTILE(3) OVER (ORDER BY monetary ASC) as m_score
+    FROM country_metrics
+)
+SELECT 
+    country,
+    r_score, f_score, m_score,
+    CASE 
+        WHEN r_score = 3 AND f_score = 3 AND m_score = 3 THEN 'Champions (Core Market)'
+        WHEN r_score = 1 THEN 'At Risk (Hibernating)'
+        WHEN m_score = 3 THEN 'Big Spenders'
+        ELSE 'Regular'
+    END as country_segment
+FROM scores
+ORDER BY m_score DESC, r_score DESC;
