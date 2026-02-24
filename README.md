@@ -41,3 +41,4 @@ python analysis2.py
 
 ## 📷 Preview
 [Dashboard](analysisphoto.png)
+[Dashboard_2](Dashboard2.png)
