@@ -34,6 +34,8 @@ Data Visualization: Построение графиков распределен
 ## ▶ Запуск:
 pip install pandas matplotlib seaborn openpyxl  
 python analysis.py
+python analysis2.py
+
 
 Для SQL: Импортируйте ваш датасет в таблицу chocolate_sales и запустите файлы из папки /PSQL Analysis.
 
