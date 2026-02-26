@@ -31,13 +31,34 @@ df["average_price"] =df["close"].mean()
 df["recovered"] = df["close"] >= df["close"].cummax()
 standard_deviation = df["return"].std() * 100
 df["rolling_std"] = df["return"].rolling(window=20).std() * 100
+df['ma50'] = df['close'].rolling(window=50).mean()
+df['ma200'] = df['close'].rolling(window=200).mean()
+cumulative_max = df['close'].cummax()
+drawdown = (df['close'] - cumulative_max) / cumulative_max
+max_drawdown = drawdown.min() * 100
+annual_volatility = df['return'].std() * (252**0.5) * 100
+sharpe_ratio = (df['return'].mean() / df['return'].std()) * (252**0.5)
 
-print("\n:")
-print(f"Дневная доходность: {df['return']}")
-print(f"Максимальная доходность: {day_max_revenue}")
-print(f"Минимальная доходность: {day_min_revenue}")
-print(f"Стандартное отклонение: {standard_deviation}")
-print(f"Время восстановления: {df['recovered'].value_counts()}")
+current_price = df['close'].iloc[-1]
+ma200_last = df['ma200'].iloc[-1]
+trend_status = "ВЫШЕ средней " if current_price > ma200_last else "НИЖЕ средней "
+
+print("\n" + "="*40)
+print("     ИТОГОВЫЙ АНАЛИЗ АКЦИЙ META")
+print("="*40)
+print(f"Текущая цена:            ${current_price:.2f}")
+print(f"Статус относительно MA200: {trend_status}")
+print("-" * 40)
+print(f"Доходность последней сессии:  {last_return:+.2f}%")
+print(f"Макс. рост за день (пик):     {day_max_revenue*100:+.2f}%")
+print(f"Макс. падение за день:        {day_min_revenue*100:+.2f}%")
+print("-" * 40)
+print(f"ГОДОВОЙ РИСК (Волатильность): {annual_volatility:.2f}%")
+print(f"МАКСИМАЛЬНЫЙ УБЫТОК (Drawdown): {max_drawdown:.2f}%")
+print(f"Дней на новых максимумах:     {df['recovered'].sum()}")
+print("="*40)
+print(f"Коэффициент Шарпа: {sharpe_ratio:.2f}")
+
 
 sns.set_theme(style="white")
 plt.rcParams['font.family'] = 'sans-serif'
@@ -99,5 +120,6 @@ plt.subplots_adjust(
     wspace=0.2,
     hspace=0.48
 )
+
 
 plt.show()
