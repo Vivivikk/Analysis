@@ -85,3 +85,12 @@ SELECT
 FROM google_stocks
 GROUP BY year
 ORDER BY year;
+
+SELECT 
+    (SELECT total_return_pct FROM risk_scoring ORDER BY date DESC LIMIT 1) AS final_return_pct,
+    COUNT(*) AS total_days,
+    COUNT(*) FILTER (WHERE z_score <= 2) AS normal_days,
+    COUNT(*) FILTER (WHERE z_score > 2 AND z_score <= 3) AS high_risk_days,
+    COUNT(*) FILTER (WHERE z_score > 3) AS extreme_anomaly_days,
+    ROUND(AVG(intraday_volatility_pct), 2) AS average_volatility_pct
+FROM risk_scoring;
