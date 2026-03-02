@@ -1,5 +1,5 @@
 # Data Analytics Portfolio
-# Chocolate Sales & Marketing Performance
+
 
 Репозиторий содержит комплексные решения для анализа бизнес-показателей: от глубокой сегментации базы данных на SQL до визуализации маркетинговых KPI на Python, Power BI.
 
